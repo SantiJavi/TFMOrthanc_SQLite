@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: orthanc-santiago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z keycloak-db 5432; do echo waiting for keycloak-db; sleep 3; done']
+      containers:
+      - name: keycloak
+        image: orthancteam/orthanc-keycloak:26.2.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9000
+          name: management
+        env:
+        - name: KC_BOOTSTRAP_ADMIN_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: KC_ADMIN_USER
+        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: KC_ADMIN_PASSWORD
+        - name: KC_DB
+          value: "postgres"
+        - name: KC_DB_URL
+          value: "jdbc:postgresql://keycloak-db:5432/keycloak"
+        - name: KC_DB_USERNAME
+          value: "keycloak"
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: DB_KEYCLOAK_PASSWORD
+        - name: KC_PROXY_HEADERS
+          value: "xforwarded"
+        # KC_HOSTNAME incluye la subruta /keycloak para que los redirects sean correctos
+        - name: KC_HOSTNAME
+          value: "http://tfm-sch.imaging.i3m.upv.es/keycloak"
+        - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
+          value: "true"
+        - name: KC_HOSTNAME_STRICT
+          value: "false"
+        - name: KC_HTTP_ENABLED
+          value: "true"
+        # KC_HTTP_RELATIVE_PATH es build-time en esta imagen — NO se incluye
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 10
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 9000
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          failureThreshold: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: orthanc-santiago
+spec:
+  type: ClusterIP
+  selector:
+    app: keycloak
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

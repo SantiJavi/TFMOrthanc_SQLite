@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orthanc
+  namespace: orthanc-santiago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orthanc
+  template:
+    metadata:
+      labels:
+        app: orthanc
+    spec:
+      containers:
+      - name: orthanc
+        image: orthancteam/orthanc:latest
+        ports:
+        - containerPort: 8042
+          name: http
+        - containerPort: 4242
+          name: dicom
+        env:
+        - name: STONE_WEB_VIEWER_PLUGIN_ENABLED
+          value: "true"
+        - name: DICOM_WEB_PLUGIN_ENABLED
+          value: "true"
+        - name: STL_PLUGIN_ENABLED
+          value: "true"
+        - name: VERBOSE_ENABLED
+          value: "true"
+        - name: SVC_INTERNAL_USER
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: SVC_INTERNAL_USER
+        - name: SVC_INTERNAL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: SVC_INTERNAL_PASSWORD
+        # WebServiceUsername y WebServicePassword se inyectan como env vars
+        # separadas para poder referenciarlas en ORTHANC_JSON via $(VAR)
+        # NOTA: la interpolación $(VAR) SÍ funciona en valores de una sola línea,
+        # pero NO dentro de bloques multilinea |. Por eso usamos un ConfigMap
+        # para el JSON y referenciamos las vars de entorno desde el script de arranque.
+        - name: ORTHANC_JSON
+          value: >-
+            {
+              "Name": "Orthanc Production",
+              "BehindReverseProxy": true,
+              "HttpServerPrefix": "/orthanc",
+              "OrthancExplorer2": {
+                "IsDefaultUI": true,
+                "UiOptions": {
+                  "EnableShares": true,
+                  "EnableOpenInOhifViewer3": true,
+                  "OhifViewer3PublicRoot": "http://tfm-sch.imaging.i3m.upv.es/ohif/"
+                },
+                "Keycloak": {
+                  "Enable": true,
+                  "Url": "http://tfm-sch.imaging.i3m.upv.es/keycloak/",
+                  "Realm": "orthanc",
+                  "ClientId": "orthanc"
+                }
+              },
+              "AuthenticationEnabled": false,
+              "Authorization": {
+                "WebServiceRootUrl": "http://orthanc-auth-service:8000/",
+                "WebServiceUsername": "$(SVC_INTERNAL_USER)",
+                "WebServicePassword": "$(SVC_INTERNAL_PASSWORD)",
+                "StandardConfigurations": ["osimis-web-viewer", "stone-webviewer", "orthanc-explorer-2", "ohif", "stl"],
+                "TokenHttpHeaders": ["api-key"],
+                "CheckedLevel": "studies"
+              }
+            }
+        volumeMounts:
+        - name: storage
+          mountPath: /var/lib/orthanc/db
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: orthanc-storage-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orthanc-service
+  namespace: orthanc-santiago
+spec:
+  type: ClusterIP
+  selector:
+    app: orthanc
+  ports:
+  - name: http
+    port: 8042
+    targetPort: 8042
+  - name: dicom
+    port: 4242
+    targetPort: 4242

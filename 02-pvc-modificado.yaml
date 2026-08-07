@@ -1,0 +1,59 @@
+# 1. VOLUMEN FÍSICO EN TU /MNT PARA ORTHANC
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: orthanc-local-pv
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/k8s/orthanc-db # <-- La ruta física con espacio en tu Ubuntu
+---
+# 2. TU RECLAMO DE ORTHANC (Modificado para enlazarse al PV)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orthanc-storage-pvc
+  namespace: orthanc-santiago
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual  # <-- Añadido
+  volumeName: orthanc-local-pv # <-- Añadido para forzar la unión
+  resources:
+    requests:
+      storage: 50Gi
+---
+# 3. VOLUMEN FÍSICO EN TU /MNT PARA KEYCLOAK
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: keycloak-local-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  hostPath:
+    path: /mnt/k8s/keycloak-db # <-- La ruta física con espacio en tu Ubuntu
+---
+# 4. TU RECLAMO DE KEYCLOAK (Modificado para enlazarse al PV)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db-pvc
+  namespace: orthanc-santiago
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual  # <-- Añadido
+  volumeName: keycloak-local-pv # <-- Añadido para forzar la unión
+  resources:
+    requests:
+      storage: 5Gi

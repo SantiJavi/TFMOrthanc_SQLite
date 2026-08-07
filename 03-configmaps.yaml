@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orthanc-config
+  namespace: orthanc-santiago
+data:
+  PUBLIC_DOMAIN: "http://tfm-sch.imaging.i3m.upv.es/"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orthanc-auth-permissions
+  namespace: orthanc-santiago
+data:
+  permissions.json: |
+    {
+      "roles": {
+        "admin-role": {
+          "authorized-labels": ["*"],
+          "permissions": [
+            "anonymize",
+            "audit-logs",
+            "delete",
+            "download",
+            "modify",
+            "send",
+            "share",
+            "view",
+            "worklists",
+            "admin-permissions",
+            "edit-labels",
+            "q-r-remote-modalities",
+            "settings",
+            "upload"
+          ]
+        },
+        "doctor-role": {
+          "authorized-labels": ["*"],
+          "permissions": [
+            "view",
+            "download",
+            "share",
+            "send"
+          ]
+        },
+        "external-role": {
+          "authorized-labels": [
+            "external",
+            "Label3",
+            "Label5"
+          ],
+          "permissions": [
+            "view",
+            "download"
+          ]
+        }
+      },
+      "available-labels": []
+    }

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orthanc-auth-service
+  namespace: orthanc-santiago
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orthanc-auth-service
+  template:
+    metadata:
+      labels:
+        app: orthanc-auth-service
+    spec:
+      initContainers:
+      - name: wait-for-keycloak
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z keycloak 8080; do echo waiting for keycloak; sleep 5; done']
+      containers:
+      - name: orthanc-auth-service
+        image: orthancteam/orthanc-auth-service:main
+        ports:
+        - containerPort: 8000
+        env:
+        - name: ENABLE_KEYCLOAK
+          value: "true"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: AUTH_SECRET_KEY
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: KC_CLIENT_SECRET
+        - name: PUBLIC_ORTHANC_ROOT
+          value: "http://tfm-sch.imaging.i3m.upv.es/orthanc/"
+        - name: PUBLIC_LANDING_ROOT
+          value: "http://tfm-sch.imaging.i3m.upv.es/orthanc/ui/app/token-landing.html"
+        - name: PUBLIC_OHIF_ROOT
+          value: "http://tfm-sch.imaging.i3m.upv.es/ohif/"
+        # URL interna del realm para obtener la clave pública
+        - name: KEYCLOAK_URI
+          value: "http://keycloak:8080/realms/orthanc"
+        - name: USERS
+          valueFrom:
+            secretKeyRef:
+              name: orthanc-secrets
+              key: SVC_USERS
+        volumeMounts:
+        - name: permissions
+          mountPath: /orthanc_auth_service/permissions.json
+          subPath: permissions.json
+      volumes:
+      - name: permissions
+        configMap:
+          name: orthanc-auth-permissions
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orthanc-auth-service
+  namespace: orthanc-santiago
+spec:
+  type: ClusterIP
+  selector:
+    app: orthanc-auth-service
+  ports:
+  - port: 8000
+    targetPort: 8000
