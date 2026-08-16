@@ -80,15 +80,13 @@ spec:
         - name: storage
           mountPath: /var/lib/orthanc/db
         readinessProbe:
-          httpGet:
-            path: /orthanc/system
+          tcpSocket:
             port: 8042
-        initialDelaySeconds: 15
-        periodSeconds: 10
-        failureThreshold: 6
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
         livenessProbe:
-          httpGet:
-            path: /orthanc/system
+          tcpSocket:
             port: 8042
           initialDelaySeconds: 30
           periodSeconds: 20

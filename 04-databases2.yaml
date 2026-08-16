@@ -46,7 +46,7 @@ spec:
         livenessProbe:
           exec:
             command:  ["pg_isready", "-U", "keycloak"]
-          initialDeleySeconds: 15
+          initialDelaySeconds: 15
           periodSeconds: 20
         resources:
           requests:
