@@ -25,6 +25,11 @@ spec:
           name: http
         - containerPort: 9000
           name: management
+        envFrom:
+        - configMapRef:
+            name: orthanc-config
+        - configMapRef:
+            name: keycloak-config
         env:
         - name: KC_BOOTSTRAP_ADMIN_USERNAME
           valueFrom:
@@ -36,29 +41,13 @@ spec:
             secretKeyRef:
               name: orthanc-secrets
               key: KC_ADMIN_PASSWORD
-        - name: KC_DB
-          value: "postgres"
-        - name: KC_DB_URL
-          value: "jdbc:postgresql://keycloak-db:5432/keycloak"
-        - name: KC_DB_USERNAME
-          value: "keycloak"
         - name: KC_DB_PASSWORD
           valueFrom:
             secretKeyRef:
               name: orthanc-secrets
               key: DB_KEYCLOAK_PASSWORD
-        - name: KC_PROXY_HEADERS
-          value: "xforwarded"
-        # KC_HOSTNAME incluye la subruta /keycloak para que los redirects sean correctos
         - name: KC_HOSTNAME
-          value: "http://tfm-sch.imaging.i3m.upv.es/keycloak"
-        - name: KC_HOSTNAME_BACKCHANNEL_DYNAMIC
-          value: "true"
-        - name: KC_HOSTNAME_STRICT
-          value: "false"
-        - name: KC_HTTP_ENABLED
-          value: "true"
-        # KC_HTTP_RELATIVE_PATH es build-time en esta imagen — NO se incluye
+          value: "$(PUBLIC_DOMAIN)/keycloak"
         readinessProbe:
           httpGet:
             path: /health/ready
@@ -73,6 +62,13 @@ spec:
           initialDelaySeconds: 60
           periodSeconds: 15
           failureThreshold: 5
+        resources:
+          requests:
+            cpu: "300m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
 ---
 apiVersion: v1
 kind: Service

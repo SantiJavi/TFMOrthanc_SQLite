@@ -4,7 +4,36 @@ metadata:
   name: orthanc-config
   namespace: orthanc-santiago
 data:
-  PUBLIC_DOMAIN: "http://tfm-sch.imaging.i3m.upv.es/"
+  PUBLIC_DOMAIN: "http://tfm-sch.imaging.i3m.upv.es"
+  STONE_WEB_VIEWER_PLUGIN_ENABLED: "true"
+  DICOM_WEB_PLUGIN_ENABLED: "true"
+  STL_PLUGIN_ENABLED: "true"
+  VERBOSE_ENABLED: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-config
+  namespace: orthanc-santiago
+data:
+  KC_DB: "postgres"
+  KC_DB_URL: "jdbc:postgresql://keycloak-db:5432/keycloak"
+  KC_DB_USERNAME: "keycloak"
+  KC_PROXY_HEADERS: "xforwarded"
+  KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+  KC_HOSTNAME_STRICT: "false"
+  KC_HTTP_ENABLED: "true"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orthanc-auth-config
+  namespace: orthanc-santiago
+data:
+  ENABLE_KEYCLOAK: "true"
+  KEYCLOAK_URI: "http://keycloak:8080/realms/orthanc"
 
 ---
 apiVersion: v1

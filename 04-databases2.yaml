@@ -5,6 +5,8 @@ metadata:
   namespace: orthanc-santiago
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: keycloak-db
@@ -27,7 +29,7 @@ spec:
         - name: PGDATA
           value: /var/lib/postgresql/data/pgdata
         - name: POSTGRES_INITDB_ARGS
-          value: "--nosync --username=keycloak"
+          value: "--username=keycloak"
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -36,6 +38,20 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready","-U","keycloak"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:  ["pg_isready", "-U", "keycloak"]
+          initialDeleySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
       volumes:
       - name: data
         persistentVolumeClaim:

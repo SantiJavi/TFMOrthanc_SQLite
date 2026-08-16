@@ -5,6 +5,8 @@ metadata:
   namespace: orthanc-santiago
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: orthanc
@@ -13,23 +15,22 @@ spec:
       labels:
         app: orthanc
     spec:
+      initContainers:
+      - name: wait-for-auth-service
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z orthanc-auth-service 8000; do echo waiting for auth-service; sleep 3; done']
       containers:
       - name: orthanc
-        image: orthancteam/orthanc:latest
+        image: orthancteam/orthanc:24.11.0
         ports:
         - containerPort: 8042
           name: http
         - containerPort: 4242
           name: dicom
+        envFrom:
+        - configMapRef:
+            name: orthanc-config
         env:
-        - name: STONE_WEB_VIEWER_PLUGIN_ENABLED
-          value: "true"
-        - name: DICOM_WEB_PLUGIN_ENABLED
-          value: "true"
-        - name: STL_PLUGIN_ENABLED
-          value: "true"
-        - name: VERBOSE_ENABLED
-          value: "true"
         - name: SVC_INTERNAL_USER
           valueFrom:
             secretKeyRef:
@@ -78,6 +79,27 @@ spec:
         volumeMounts:
         - name: storage
           mountPath: /var/lib/orthanc/db
+        readinessProbe:
+          httpGet:
+            path: /orthanc/system
+            port: 8042
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /orthanc/system
+            port: 8042
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1500m"
+            memory: "2Gi"  
       volumes:
       - name: storage
         persistentVolumeClaim:
