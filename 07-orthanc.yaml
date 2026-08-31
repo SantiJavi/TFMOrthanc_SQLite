@@ -91,13 +91,6 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 20
           failureThreshold: 3
-        resources:
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
-          limits:
-            cpu: "1500m"
-            memory: "2Gi"  
       volumes:
       - name: storage
         persistentVolumeClaim:

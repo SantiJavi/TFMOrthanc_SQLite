@@ -48,10 +48,6 @@ spec:
             command:  ["pg_isready", "-U", "keycloak"]
           initialDelaySeconds: 15
           periodSeconds: 20
-        resources:
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
       volumes:
       - name: data
         persistentVolumeClaim:
