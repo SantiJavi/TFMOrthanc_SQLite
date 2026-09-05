@@ -1,0 +1,48 @@
+{
+  "roles": {
+    "admin-role": {
+      "authorized-labels": [
+        "*"
+      ],
+      "permissions": [
+        "anonymize",
+        "audit-logs",
+        "delete",
+        "download",
+        "modify",
+        "send",
+        "share",
+        "view",
+        "worklists",
+        "admin-permissions",
+        "edit-labels",
+        "q-r-remote-modalities",
+        "settings",
+        "upload"
+      ]
+    },
+    "doctor-role": {
+      "authorized-labels": [
+        "*"
+      ],
+      "permissions": [
+        "view",
+        "download",
+        "share",
+        "send"
+      ]
+    },
+    "external-role": {
+      "authorized-labels": [
+        "external",
+        "Label3",
+        "Label5"
+      ],
+      "permissions": [
+        "view",
+        "download"
+      ]
+    }
+  },
+  "available-labels": []
+}

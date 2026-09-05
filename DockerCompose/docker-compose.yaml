@@ -1,0 +1,96 @@
+services:
+  nginx:
+    image: orthancteam/orthanc-nginx:26.2.0
+    depends_on: [orthanc, orthanc-auth-service, keycloak]
+    restart: unless-stopped
+    ports: ["80:80"]
+    environment:
+      ENABLE_ORTHANC: "true"
+      ENABLE_KEYCLOAK: "true"
+      ENABLE_ORTHANC_TOKEN_SERVICE: "false"
+      ENABLE_HTTPS: "false"
+      ENABLE_OHIF: "true"
+
+  orthanc:
+    image: orthancteam/orthanc:24.11.0
+    volumes:
+      - /home/santiago/Documentos/TFM/dockerOrthanc:/var/lib/orthanc/db
+    restart: unless-stopped
+    environment:
+      STONE_WEB_VIEWER_PLUGIN_ENABLED: "true"
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      STL_PLUGIN_ENABLED: "true"
+      ORTHANC_JSON: |
+        {
+          "Name": "Orthanc Production",
+          "OrthancExplorer2": {
+            "IsDefaultUI": true,
+            "UiOptions": {
+              "EnableShares": true,
+              "EnableOpenInOhifViewer3": true,
+              "OhifViewer3PublicRoot": "${PUBLIC_DOMAIN}ohif/"
+            },
+            "Keycloak" : {
+              "Enable": true,
+              "Url": "${PUBLIC_DOMAIN}keycloak/",
+              "Realm": "orthanc",
+              "ClientId": "orthanc"
+            }
+          },
+          "AuthenticationEnabled": false,
+          "Authorization": {
+            "WebServiceRootUrl": "http://orthanc-auth-service:8000/",
+            "WebServiceUsername": "${SVC_INTERNAL_USER}",
+            "WebServicePassword": "${SVC_INTERNAL_PASSWORD}",
+            "StandardConfigurations" : ["osimis-web-viewer", "stone-webviewer", "orthanc-explorer-2", "ohif", "stl"],
+            "TokenHttpHeaders" : [ "api-key" ],
+            "CheckedLevel": "studies"
+          }
+        }
+
+  orthanc-auth-service:
+    image: orthancteam/orthanc-auth-service:26.2.0
+    volumes:
+      - ./permissions.jsonc:/orthanc_auth_service/permissions.json
+    depends_on: [keycloak]
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: "${AUTH_SECRET_KEY}"
+      ENABLE_KEYCLOAK: "true"
+      KEYCLOAK_CLIENT_SECRET: "${KC_CLIENT_SECRET}"
+      PUBLIC_ORTHANC_ROOT: "${PUBLIC_DOMAIN}orthanc/"
+      PUBLIC_LANDING_ROOT: "${PUBLIC_DOMAIN}orthanc/ui/app/token-landing.html"
+      PUBLIC_OHIF_ROOT: "${PUBLIC_DOMAIN}ohif/"
+      USERS: |
+        {
+          "${SVC_INTERNAL_USER}": "${SVC_INTERNAL_PASSWORD}"
+        }
+
+  ohif:
+    image: orthancteam/ohif-v3:25.12.0
+    restart: unless-stopped
+
+  keycloak:
+    image: orthancteam/orthanc-keycloak:26.2.0
+    depends_on: [keycloak-db]
+    restart: unless-stopped
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: "${KC_ADMIN_USER}"
+      KC_BOOTSTRAP_ADMIN_PASSWORD: "${KC_ADMIN_PASSWORD}"
+      KC_DB: "postgres"
+      KC_DB_URL: "jdbc:postgresql://keycloak-db:5432/keycloak"
+      KC_DB_USERNAME: "keycloak"
+      KC_DB_PASSWORD: "${DB_KEYCLOAK_PASSWORD}"
+
+  keycloak-db:
+    image: postgres:14
+    restart: unless-stopped
+    volumes: ["keycloak-db:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_PASSWORD: "${DB_KEYCLOAK_PASSWORD}"
+      POSTGRES_USER: "keycloak"
+      POSTGRES_DB: "keycloak"
+
+volumes:
+  orthanc-storage:
+  keycloak-db:
